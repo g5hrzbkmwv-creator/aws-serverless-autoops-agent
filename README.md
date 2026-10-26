@@ -32,3 +32,7 @@ This project transforms a CLI-based Python AI Agent into a enterprise-ready, web
 - **Backend**: Python, Boto3, LangChain / Vector Embeddings (depending on the specific details of requirements)
 - **Frontend**: React, Vite, JavaScript
 - **Architecture**: Serverless, Step Functions State Machine, Event-Driven API
+
+---
+## 📺 Screenshots
+<img src="./images/AgentResponses.png" alt="Screenshot"/>
