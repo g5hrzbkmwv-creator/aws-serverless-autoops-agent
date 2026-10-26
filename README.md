@@ -1,6 +1,16 @@
 # aws-serverless-autoops-agent
 This project transforms a CLI-based Python AI Agent into a enterprise-ready, web-accessible API and modern chat UI. Built on top of **Amazon Bedrock** and the **Strands Agent Framework**, the system leverages **AgentCore Gateway** via **Model Context Protocol (MCP)** for dynamic tool discovery and execution. 
 
+---
+
+## 📐 Activity Diagram
+<img src="./images/Project 3 AutoOpsAgent-Activity Diagram.drawio.png" alt="Activity Diagram"/>
+
+## 📐 System Architecture Diagram
+<img src="./images/Project 3 AutoOpsAgent-AWS Architecture.drawio.png" alt="System Architecture Diagram"/>
+
+---
+
 ## 🚀 Key Architecture Highlights
 1. **AgentCore Gateway & Step Functions Dynamic Integration**:
    - Seamlessly couples **Bedrock AgentCore Gateway** with **AWS Step Functions** state machines via the Model Context Protocol (MCP). 
@@ -14,6 +24,8 @@ This project transforms a CLI-based Python AI Agent into a enterprise-ready, web
 
 4. **Streamlined UI Output & Reasoning Isolation**:
    - Built-in regex stream parsing (across backend and frontend) that cleanly separates LLM `<thinking>` steps from final response payloads deliverable to end-users.
+
+---
 
 ## 🛠 Tech Stack
 - **Cloud / AI / AWS**: Amazon Bedrock (Amazon Nova Pro), Amazon Bedrock AgentCore, Amazon Bedrock AgentCore Gateway, AWS Step Functions, AWS Lambda, Amazon API Gateway, Amazon S3, Amazon CloudFront (with OAC), CloudFormation
