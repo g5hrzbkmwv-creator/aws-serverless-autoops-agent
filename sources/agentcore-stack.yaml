@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: >
+  Autonomous Ops Agent Full Stack with HITL (Bedrock AgentCore)
+
+Resources:
+
+  # 1. IAM Role for Bedrock AgentCore Gateway
+  AgentCoreGatewayExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AgentCoreGatewayLambdaInvokePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: 'arn:aws:lambda:*:*:function:*'
+
+  # 2. Bedrock AgentCore Gateway
+  AutonomousOpsGateway:
+    Type: AWS::BedrockAgentCore::Gateway
+    Properties:
+      Name: 'AutonomousOps-CentralGateway'
+      Description: 'Unified enterprise gateway for agentic inventory and restock workflows.'
+      ProtocolType: 'MCP' # Model Context Protocol
+      AuthorizerType: 'NONE' # 測試階段可先設為 NONE（正式環境可改為 AWS_IAM 或 CUSTOM_JWT）
+      RoleArn: !GetAtt AgentCoreGatewayExecutionRole.Arn
+
+  # 3. 將 CheckInventory 函數註冊為 Gateway Target
+  InventoryGatewayTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    Properties:
+      GatewayIdentifier: !Ref AutonomousOpsGateway
+      Name: 'CheckInventoryTarget'
+      Description: 'Exposes inventory checking capability through AgentCore Gateway'
+      CredentialProviderConfigurations:
+        - CredentialProviderType: "GATEWAY_IAM_ROLE"
+      TargetConfiguration:
+        Mcp:
+          Lambda:
+            LambdaArn: !ImportValue AutoOpsCheckInventoryFunctionArn
+            ToolSchema:
+              InlinePayload:
+                - Name: 'checkInventory'
+                  Description: 'Checks current inventory quantity and safe level for a specific SKU.'
+                  InputSchema:
+                    Type: 'object'
+                    Properties:
+                      sku:
+                        Type: 'string'
+                        Description: 'The product SKU (e.g., ITEM-001)'
+                    Required:
+                      - 'sku'
+
+  # 4. 確保 Gateway 有權限叫用 Lambda (資源型政策)
+  InventoryGatewayLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !ImportValue AutoOpsCheckInventoryFunctionId
+      Principal: bedrock.amazonaws.com # 或對應的 AgentCore Gateway 服務主體
+      SourceArn: !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:gateway/${AutonomousOpsGateway}'
+
+  # 5. 將 RequestRestockApproval 函數註冊為 Gateway Target
+  RequestApprovalGatewayTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    Properties:
+      GatewayIdentifier: !Ref AutonomousOpsGateway
+      Name: 'RequestRestockApprovalTarget'
+      Description: 'Exposes Human-in-the-Loop restock approval triggering through AgentCore Gateway'
+      CredentialProviderConfigurations:
+        - CredentialProviderType: "GATEWAY_IAM_ROLE"
+      TargetConfiguration:
+        Mcp:
+          Lambda:
+            LambdaArn: !ImportValue AutoOpsRequestRestockApprovalFunctionArn
+            ToolSchema:
+              InlinePayload:
+                - Name: 'requestRestockApproval'
+                  Description: 'Initiates a Human-in-the-Loop Step Functions workflow to request restock approval and send notification emails.'
+                  InputSchema:
+                    Type: 'object'
+                    Properties:
+                      sku:
+                        Type: 'string'
+                        Description: The product SKU requiring restock (e.g., ITEM-001)
+                      Quantity:
+                        Type: integer
+                        Description: The quantity to restock (default is 100 if omitted)
+                    Required: ['sku']
+
+  # 6. 確保 Gateway 有權限叫用 Lambda (資源型政策)
+  RequestApprovalGatewayLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !ImportValue AutoOpsRequestRestockApprovalFunctionId
+      Principal: bedrock.amazonaws.com # 或對應的 AgentCore Gateway 服務主體
+      SourceArn: !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:gateway/${AutonomousOpsGateway}'
